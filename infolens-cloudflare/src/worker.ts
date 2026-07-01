@@ -55,7 +55,7 @@ export default {
         return handleConsensus(url, env);
       }
       if (path === '/api/dump' && request.method === 'GET') {
-        return handleDump(env);
+        return handleDump(request, env);
       }
 
       // 默认 404
@@ -74,9 +74,8 @@ export default {
  * 导出社区标注数据（分页，供新安装的用户拉取）
  * 参数: ?offset=0&limit=1000
  */
-async function handleDump(env: Env): Promise<Response> {
-  const url = new URL(env.BINDING_VARS?.__request_url || '');
-  // 从 request 获取 query params
+async function handleDump(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url);
   const offset = parseInt(url.searchParams.get('offset') || '0');
   const limit = Math.min(parseInt(url.searchParams.get('limit') || '1000'), 5000);
 
