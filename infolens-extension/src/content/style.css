@@ -1,0 +1,137 @@
+/**
+ * InfoLens — 样式
+ */
+
+/* ── 页面右侧竖排浮动栏 ── */
+#infolens-bar {
+  position: fixed;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  z-index: 2147483647;
+  display: flex;
+  flex-direction: column;
+  font: 14px/1.3 -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: #1a1a1a;
+  background: #fff;
+  border: 2px solid #1565c0;
+  border-right: none;
+  border-radius: 10px 0 0 10px;
+  box-shadow: -2px 2px 12px rgba(0,0,0,0.15);
+  padding: 6px 0;
+  min-width: 110px;
+}
+
+/* ── 评分行 ── */
+.il-score-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 10px;
+  border-bottom: 1px solid #e0ddd5;
+}
+.il-score {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 26px;
+  padding: 0 8px;
+  border: 2px solid;
+  border-radius: 13px;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+/* ── 标注按钮行 ── */
+.il-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: #1a1a1a;
+  font: 14px/1 -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.il-btn:hover { background: #f0f0f0; }
+.il-btn.il-active {
+  background: #1565c0;
+  color: #fff;
+}
+.il-btn .il-emoji {
+  font-size: 17px;
+  width: 24px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.il-btn .il-label {
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-weight: 500;
+}
+
+/* ── 搜索结果横排徽章 ── */
+.il-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 5px;
+  vertical-align: middle;
+  font: 12px/1 -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  opacity: 0.85;
+  transition: opacity 0.15s;
+}
+.il-badge:hover { opacity: 1; }
+.il-badge .il-score-sm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 18px;
+  padding: 0 5px;
+  border: 1.5px solid;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #fff;
+}
+.il-badge .il-tag-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.il-badge .il-tag-sm b { font-size: 9px; opacity: 0.6; margin-left: 1px; }
+.il-badge .il-good-sm     { background: rgba(46,125,50,0.1); }
+.il-badge .il-spam-sm     { background: rgba(198,40,40,0.1); }
+.il-badge .il-official-sm { background: rgba(21,101,192,0.1); }
+.il-badge .il-offtopic-sm { background: rgba(249,168,37,0.1); }
+.il-badge .il-deep-sm     { background: rgba(106,27,154,0.1); }
+.il-badge .il-outdated-sm { background: rgba(117,117,117,0.1); }
+.il-badge .il-div-sm { color: #ccc; margin: 0 1px; user-select: none; font-size: 11px; }
+.il-badge .il-acts-sm { display: inline-flex; gap: 1px; }
+.il-badge .il-btn-sm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  font-size: 13px;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: all 0.1s;
+}
+.il-badge .il-btn-sm:hover { opacity: 1; background: rgba(0,0,0,0.06); }
+.il-badge .il-btn-sm.il-active { opacity: 1; background: #1565c0; color: #fff; border-color: #1565c0; }

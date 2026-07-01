@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:280px;font:13px/1.5 -apple-system,"PingFang SC",sans-serif;background:#f5f5f0;color:#1a1a1a}
+h1{text-align:center;padding:12px;font-size:1rem}
+h1 span{color:#1565c0}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 12px;margin-bottom:12px}
+.stat{background:#fff;border:1px solid #e0ddd5;border-radius:6px;padding:8px;text-align:center}
+.stat .n{font-size:1.2rem;font-weight:700;color:#1565c0}
+.stat .l{font-size:0.65rem;color:#666}
+.settings{background:#fff;border:1px solid #e0ddd5;border-radius:6px;padding:10px;margin:0 12px 12px}
+.row{display:flex;justify-content:space-between;padding:4px 0;font-size:0.75rem}
+.row .k{color:#666}
+.row .v{font-weight:600;font-size:0.7rem}
+button{display:block;width:100%;margin-top:8px;padding:6px;border:1px solid #d32f2f;border-radius:4px;background:transparent;color:#d32f2f;font-size:0.75rem;cursor:pointer}
+button:hover{background:#d32f2f;color:#fff}
+footer{text-align:center;font-size:0.65rem;color:#666;padding:8px;border-top:1px solid #e0ddd5}
+</style>
+</head>
+<body>
+<h1>Info<span>Lens</span></h1>
+<div class="stats">
+  <div class="stat"><div class="n" id="tags">0</div><div class="l">已标注</div></div>
+  <div class="stat"><div class="n" id="domains">0</div><div class="l">域名</div></div>
+</div>
+<div class="settings">
+  <div class="row"><span class="k">用户 ID</span><span class="v" id="uid">—</span></div>
+  <div class="row"><span class="k">版本</span><span class="v">v0.5.0</span></div>
+  <button id="clear">清除数据</button>
+</div>
+<footer><a href="https://www.tronfo.com">tronfo.com</a> · MIT</footer>
+<script>
+(function(){
+  if (chrome.runtime) {
+    chrome.runtime.sendMessage({type:'STATS'}, r => {
+      if (r) {
+        document.getElementById('tags').textContent = r.votedUrls || 0;
+        document.getElementById('domains').textContent = r.domains || 0;
+        chrome.runtime.sendMessage({type:'GET_ALL'}, data => {
+          if (data && chrome.storage) {
+            chrome.storage.local.get(['userId'], uid => {
+              document.getElementById('uid').textContent = (uid.userId||'anon').slice(0,8)+'…'+(uid.userId||'anon').slice(-4);
+            });
+          }
+        });
+      }
+    });
+  }
+  document.getElementById('clear').addEventListener('click', () => {
+    if (!confirm('清除所有标注数据？')) return;
+    chrome.runtime.sendMessage({type:'CLEAR'}, () => location.reload());
+  });
+})();
+</script>
+</body>
+</html>

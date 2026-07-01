@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "InfoLens — 信息透镜",
+  "version": "0.5.0",
+  "description": "所有网页的质量标注层",
+  "default_locale": "zh_CN",
+  "icons": {
+    "16": "assets/icon-16.png",
+    "48": "assets/icon-48.png",
+    "128": "assets/icon-128.png"
+  },
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_icon": {
+      "16": "assets/icon-16.png",
+      "48": "assets/icon-48.png"
+    }
+  },
+  "background": {
+    "service_worker": "src/background/service-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": [
+        "src/shared/i18n.js",
+        "src/shared/store.js",
+        "src/content/injector.js"
+      ],
+      "css": ["src/content/style.css"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://infolens-api.leokin.workers.dev/*"
+  ]
+}

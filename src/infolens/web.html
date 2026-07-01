@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>InfoLens — 搜索引擎对比标注器</title>
+<style>
+:root {
+  --bg: #f5f5f0; --card: #fff; --text: #1a1a1a; --muted: #666;
+  --border: #e0ddd5; --good: #2e7d32; --spam: #c62828;
+  --official: #1565c0; --accent: #1565c0; --warn: #f9a825;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #1a1a1a; --card: #2a2a2a; --text: #e0e0e0; --muted: #999; --border: #444; }
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, "PingFang SC", sans-serif;
+  background: var(--bg); color: var(--text); line-height: 1.6; max-width: 750px;
+  margin: 0 auto; padding: 1rem; }
+
+header { padding: 1rem 0 1.5rem; border-bottom: 2px solid var(--border); margin-bottom: 1.5rem; }
+header h1 { font-size: 1.3rem; }
+header h1 span { color: var(--accent); }
+header p { font-size: 0.8rem; color: var(--muted); margin-top: 0.25rem; }
+
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-bottom: 1.5rem; }
+.stat { background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+  padding: 0.5rem; text-align: center; }
+.stat .num { font-size: 1.2rem; font-weight: 700; }
+.stat .label { font-size: 0.7rem; color: var(--muted); }
+
+/* ── Search Form ── */
+.search-form { background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+  padding: 1rem; margin-bottom: 1.5rem; }
+.search-form h3 { font-size: 0.95rem; margin-bottom: 0.75rem; }
+.search-form .row { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
+.search-form input, .search-form textarea { flex: 1; padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem;
+  background: var(--bg); color: var(--text); font-family: inherit; }
+.search-form input:focus, .search-form textarea:focus { outline: none; border-color: var(--accent); }
+.search-form textarea { min-height: 60px; resize: vertical; }
+.search-form button { padding: 0.5rem 1.25rem; border: none; border-radius: 6px;
+  background: var(--accent); color: #fff; font-size: 0.9rem; cursor: pointer; }
+.search-form button:hover { opacity: 0.9; }
+.search-form .hint { font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem; }
+
+/* ── Results ── */
+.result { background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+  padding: 0.75rem; margin-bottom: 0.5rem; border-left: 3px solid var(--border); }
+.result.label-good { border-left-color: var(--good); }
+.result.label-spam { border-left-color: var(--spam); }
+.result.label-warn { border-left-color: var(--warn); }
+.result.label-official { border-left-color: var(--official); }
+.result h4 { font-size: 0.9rem; margin-bottom: 0.25rem; }
+.result h4 a { color: var(--text); text-decoration: none; }
+.result h4 a:hover { color: var(--accent); }
+.result .meta { font-size: 0.75rem; color: var(--muted); display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.result .label-badge { font-size: 0.7rem; padding: 0.1rem 0.4rem; border-radius: 3px;
+  font-weight: 600; }
+.result .snippet { font-size: 0.8rem; color: var(--muted); margin-top: 0.35rem;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ── Tag Buttons ── */
+.tags { display: flex; gap: 0.3rem; margin-top: 0.5rem; flex-wrap: wrap; }
+.tag-btn { padding: 0.15rem 0.4rem; border: 1px dashed var(--border); border-radius: 4px;
+  background: transparent; color: var(--muted); font-size: 0.7rem; cursor: pointer; }
+.tag-btn:hover { border-style: solid; }
+.tag-btn.active { border-style: solid; background: var(--accent); color: #fff; }
+.tag-count { font-weight: 700; margin-left: 0.1rem; }
+
+@media (max-width: 500px) {
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .search-form .row { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Info<span>Lens</span></h1>
+  <p>搜索引擎对比标注器 — 用差异过滤垃圾</p>
+</header>
+
+<div class="stats" id="stats"></div>
+
+<!-- ── Search Form ── -->
+<div class="search-form">
+  <h3>🔍 搜索引擎对比</h3>
+  <div class="row">
+    <input id="keyword" placeholder="搜索关键词（如：XX官网、XX品牌）">
+  </div>
+  <div class="row">
+    <textarea id="baidu-input" placeholder="粘贴百度搜索结果（每行：标题|URL，广告行加 ad: 前缀）"></textarea>
+  </div>
+  <div class="hint">Tavily 结果由系统自动获取。百度结果可手动粘贴（可选）。</div>
+  <div class="row" style="margin-top:0.5rem">
+    <button onclick="doCompare()">对比搜索</button>
+  </div>
+</div>
+
+<!-- ── Results ── -->
+<div id="results"></div>
+
+<script>
+const TAG_LABELS = {
+  good: '👍', spam: '👎', official: '📋',
+  offtopic: '⚠️', deep: '🔍', outdated: '📅'
+};
+
+async function api(path) {
+  const r = await fetch('/api' + path);
+  return r.json();
+}
+
+async function apiPost(path, body) {
+  const r = await fetch('/api' + path, {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body),
+  });
+  return r.json();
+}
+
+async function loadStats() {
+  const s = await api('/stats');
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><div class="num">${s.keywords}</div><div class="label">关键词</div></div>
+    <div class="stat"><div class="num">${s.urls}</div><div class="label">URL</div></div>
+    <div class="stat"><div class="num">${s.total}</div><div class="label">结果</div></div>
+    <div class="stat"><div class="num">${s.tags}</div><div class="label">标注</div></div>
+  `;
+}
+
+async function doCompare() {
+  const keyword = document.getElementById('keyword').value.trim();
+  if (!keyword) { alert('请输入关键词'); return; }
+
+  // 解析百度结果
+  const baiduRaw = document.getElementById('baidu-input').value.trim();
+  const baiduResults = [];
+  if (baiduRaw) {
+    baiduRaw.split('\n').forEach(line => {
+      line = line.trim();
+      if (!line) return;
+      const isAd = line.startsWith('ad:');
+      if (isAd) line = line.slice(3).trim();
+      const parts = line.split('|');
+      if (parts.length >= 2) {
+        baiduResults.push({ url: parts[1].trim(), title: parts[0].trim(), is_ad: isAd });
+      }
+    });
+  }
+
+  // 显示加载状态
+  document.getElementById('results').innerHTML = '<p style="text-align:center;padding:2rem;color:var(--muted)">正在搜索...</p>';
+
+  // 调用后端对比
+  // 注意：这里需要后端调用 web_search 获取 Tavily 结果
+  // 所以先 POST keyword，后端会处理
+  const data = await apiPost('/compare', {
+    keyword: keyword,
+    tavily_results: [],  // 后端会自己搜索
+    baidu_results: baiduResults,
+  });
+
+  if (data.error) {
+    document.getElementById('results').innerHTML = `<p style="text-align:center;padding:2rem;color:var(--spam)">${data.error}</p>`;
+    return;
+  }
+
+  renderResults(data);
+  loadStats();
+}
+
+function renderResults(comparisons) {
+  if (!comparisons.length) {
+    document.getElementById('results').innerHTML = '<p style="text-align:center;padding:2rem;color:var(--muted)">无结果</p>';
+    return;
+  }
+
+  const labelMap = {
+    '✅ 两边都有': 'label-good',
+    '👎 百度广告': 'label-spam',
+    '⚠️ 仅百度前3 → 可疑SEO/竞价': 'label-warn',
+    '🔍 仅Tavily有 → 百度未收录或压制': 'label-official',
+  };
+
+  document.getElementById('results').innerHTML = comparisons.map(c => {
+    const labelClass = labelMap[c.label] || '';
+    return `<div class="result ${labelClass}">
+      <h4><a href="${c.url}" target="_blank">${c.title}</a></h4>
+      <div class="meta">
+        <span class="label-badge">${c.label || '—'}</span>
+        <span>${c.domain}</span>
+        ${c.baidu_is_ad ? '<span style="color:var(--spam)">🚫 广告</span>' : ''}
+      </div>
+      ${c.snippet ? `<div class="snippet">${c.snippet}</div>` : ''}
+      <div class="tags" id="tags-${encodeURIComponent(c.url)}">
+        ${Object.entries(TAG_LABELS).map(([k, v]) =>
+          `<button class="tag-btn" onclick="tagUrl('${c.url}','${k}',this)">${v}</button>`
+        ).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function tagUrl(url, tagType, btn) {
+  const res = await apiPost('/tag', {url, tag_type: tagType});
+  if (res.ok) {
+    btn.classList.add('active');
+    loadStats();
+  }
+}
+
+loadStats();
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "name": "infolens-cloudflare",
+  "version": "0.4.0",
+  "description": "InfoLens Cloudflare Worker API — 标注数据云端服务",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy --minify",
+    "db:migrate": "wrangler d1 execute infolens --file=db/schema.sql",
+    "db:seed": "wrangler d1 execute infolens --file=db/seed.sql"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250101.0",
+    "wrangler": "^3.114.17"
+  }
+}

@@ -1,0 +1,14 @@
+name = "infolens-api"
+main = "src/worker.ts"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+account_id = "89facf90de70fe57c4082077fc70dcb3"
+
+# D1 数据库
+[[d1_databases]]
+binding = "DB"
+database_name = "infolens"
+database_id = "fc0954b6-4709-4f20-9997-cc5c4208104c"
+
+[vars]
+ENVIRONMENT = "development"

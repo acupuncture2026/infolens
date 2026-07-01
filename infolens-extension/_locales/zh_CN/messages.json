@@ -1,0 +1,10 @@
+{
+  "extensionName": {
+    "message": "InfoLens — 信息透镜",
+    "description": "Extension name"
+  },
+  "extensionDescription": {
+    "message": "搜索结果质量标注层",
+    "description": "Extension description"
+  }
+}

@@ -1,0 +1,13 @@
+# Browser extension
+node_modules/
+dist/
+*.zip
+
+# Cloudflare Worker
+.wrangler/
+.node_modules/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
