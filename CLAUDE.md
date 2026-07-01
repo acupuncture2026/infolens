@@ -6,7 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 InfoLens (信息透镜) is a search result quality annotation layer. It does **not** build a search engine — it annotates search results from existing engines (Tavily, Bing, Baidu, DDG) with human tags (good/spam/official/offtopic/deep/outdated) and produces domain credibility scores. The project is in Chinese; all UI text, comments, and commit messages are in Chinese.
 
-Website: www.tronfo.com (宠孚生物官方网站)
+**Vision**: 刺破幻相，看见真实 — Pierce through the illusion, see the truth.
+
+**Origin**: 广东宠孚生物科技有限公司（成立于2021年，专注于基因检测、大数据管理和智能分析的高新技术企业）的官网 www.tronfo.com 在百度上搜索不到，哪怕搜"官网"也没有结果。搜索引擎被广告和SEO垃圾占据，真正的企业官网完全被埋没。这就是 InfoLens 要解决的问题。
 
 ## Architecture
 
