@@ -32,7 +32,7 @@
       "all_frames": false
     }
   ],
-  "permissions": ["storage"],
+  "permissions": ["storage", "notifications"],
   "host_permissions": [
     "https://infolens-api.leokin.workers.dev/*"
   ]

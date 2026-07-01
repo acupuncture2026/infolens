@@ -73,7 +73,46 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResp) => {
   }
 });
 
-// ── 云端同步 ──
+// ── 版本检查（GitHub） ──
+const GITHUB_REPO = 'acupuncture2026/infolens';
+const GITHUB_API = `https://api.github.com/repos/${GITHUB_REPO}`;
+
+function checkForUpdate() {
+  fetch(`${GITHUB_API}/commits/main`, {
+    headers: { 'Accept': 'application/vnd.github.v3+json' }
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.sha) {
+      chrome.storage.local.get(['lastCommitSha'], (r) => {
+        if (r.lastCommitSha && r.lastCommitSha !== data.sha) {
+          chrome.notifications.create({
+            type: 'basic',
+            iconUrl: 'assets/icon-48.png',
+            title: 'InfoLens 有新版本',
+            message: `检测到更新\n\n${data.commit.message.split('\n')[0]}\n\n点击前往 GitHub 更新`,
+            buttons: [{ title: '查看更新' }],
+          });
+        }
+        chrome.storage.local.set({ lastCommitSha: data.sha });
+      });
+    }
+  })
+  .catch(() => {});
+}
+
+// 启动时检查，每 6 小时检查一次
+setTimeout(checkForUpdate, 10000);
+setInterval(checkForUpdate, 6 * 60 * 60 * 1000);
+
+// ── 通知点击 ──
+chrome.notifications.onClicked.addListener(() => {
+  chrome.tabs.create({ url: `https://github.com/${GITHUB_REPO}` });
+});
+
+chrome.notifications.onButtonClicked.addListener(() => {
+  chrome.tabs.create({ url: `https://github.com/${GITHUB_REPO}` });
+});
 async function syncToCloud(url, domain, tagType) {
   try {
     const controller = new AbortController();
