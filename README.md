@@ -237,6 +237,19 @@ infolens/
 
 ---
 
+## 参数字段参考
+
+完整的参数字段定义、值域、传递流程见 [docs/FIELDS.md](docs/FIELDS.md)。
+
+**核心数据结构**：
+```
+URL → { good, spam, official, offtopic, deep, outdated, domain, userVote }
+```
+
+**评分范围**：-500 ~ +500，10 级色阶（深红→深绿）
+
+---
+
 ## 贡献
 
 欢迎加入！无论你是开发者、编辑、研究者，还是每一个不愿意被算法饲养的普通人。

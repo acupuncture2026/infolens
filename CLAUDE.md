@@ -78,3 +78,36 @@ PYTHONPATH=src python scripts/cron_fetch.py
 - `web.html` is a self-contained single-page app (vanilla JS, no build step) served by FastAPI at `/`.
 - No test suite exists.
 - No linter/formatter is configured.
+
+## 开发规范
+
+### 字段管理规则
+
+**新增任何字段前，必须先更新 `docs/FIELDS.md`，说明：**
+1. 字段名、类型、值域
+2. 使用场景（哪个组件产生/消费）
+3. 传递过程（从哪来 → 到哪去 → 存在哪）
+4. 是否需要数据库 schema 变更
+
+**涉及文件清单**：
+- `infolens-extension/src/shared/store.js` — 前端数据模型 + 评分算法
+- `infolens-extension/src/shared/i18n.js` — 多语言配置
+- `infolens-extension/src/background/service-worker.js` — 数据中枢 + 云端同步
+- `infolens-extension/src/content/injector.js` — 内容注入器
+- `infolens-cloudflare/src/worker.ts` — Cloudflare Worker API
+- `infolens-cloudflare/db/schema.sql` — D1 数据库结构
+
+### 消息通信
+
+Content Script 与 Service Worker 通过 `chrome.runtime.sendMessage` 通信：
+- `GET_ALL` — 获取全部数据
+- `VOTE` — 提交标注 `{ url, domain, tagType }`
+- `DATA_CHANGED` — SW 广播数据变更（SW → CS）
+- `EXPORT` / `IMPORT` — 数据备份
+- `STATS` — 统计信息
+
+### 数据持久化
+
+- `chrome.storage.local.infolens_persist` — 主数据（JSON 字符串）
+- `chrome.storage.local.userId` — 匿名用户 ID
+- `localStorage.__il_cache` — 内容脚本缓存副本
