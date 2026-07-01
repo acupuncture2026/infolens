@@ -74,6 +74,10 @@ function score(entry) {
   if (!entry) return { credibility: 0.5, total: 0 };
   const total = (entry.good||0)+(entry.spam||0)+(entry.official||0)+(entry.offtopic||0)+(entry.deep||0)+(entry.outdated||0);
   if (total === 0) return { credibility: 0.5, total: 0 };
+
+  // 垃圾标记：直接扣到 0
+  if ((entry.spam||0) > 0) return { credibility: 0, total };
+
   return { credibility: ((entry.good||0)+(entry.official||0))/total, total };
 }
 
