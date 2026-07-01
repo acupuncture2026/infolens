@@ -89,13 +89,13 @@ function detectEngine() {
 function makeBarHTML(entry) {
   const s = score(entry);
   const color = scoreColor(s.display);
+  const scoreText = s.total > 0 ? (s.display > 0 ? '+' : '') + s.display : '—';
 
   const buttons = TAGS.map(x =>
     `<button class="il-btn${x.key===entry?.userVote?' il-active':''}" data-tag="${x.key}"><span class="il-emoji">${x.emoji}</span><span class="il-label">${t(x)}</span></button>`
   ).join('');
 
-  const scoreText = s.total > 0 ? (s.display > 0 ? '+' : '') + s.display : '—';
-  return `<span class="il-score-sm" style="border-color:${color};color:${color}">${scoreText}</span>${tags}<span class="il-div-sm">|</span><span class="il-acts-sm">${btns}</span>`;
+  return `<div class="il-score-row"><span class="il-score" style="border-color:${color};color:${color}">${scoreText}</span></div>${buttons}`;
 }
 
 // ── 场景 1: 页面浮动徽章 ──
