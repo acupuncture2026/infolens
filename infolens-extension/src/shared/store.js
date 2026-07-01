@@ -1,5 +1,12 @@
 /**
- * InfoLens — 数据存储（通过 service worker 中转）
+ * InfoLens — 数据存储（URL 级别）
+ * 评分算法：加权投票
+ *   👍 值得看   +100
+ *   📋 官网     +100
+ *   🔍 深度     +50
+ *   ⚠️ 偏题     -50
+ *   📅 过时     -25
+ *   👎 垃圾     -100（每个都扣）
  */
 
 let localCache = {};
@@ -25,7 +32,6 @@ function getEntry(url) {
 }
 
 function vote(url, domain, tagType) {
-  // 同步更新本地缓存（即时响应）
   if (!localCache[url]) localCache[url] = { good:0, spam:0, official:0, offtopic:0, deep:0, outdated:0, domain, userVote:null };
   const d = localCache[url];
   const old = d.userVote;
@@ -37,7 +43,6 @@ function vote(url, domain, tagType) {
     d[tagType] = (d[tagType]||0) + 1;
     d.userVote = tagType;
   }
-  // 同步保存到 service worker
   if (typeof chrome !== 'undefined' && chrome.runtime) {
     chrome.runtime.sendMessage({ type: 'VOTE', data: { url, domain, tagType } }).catch(() => {});
   }
@@ -48,14 +53,10 @@ function loadData() {
   return new Promise((resolve) => {
     if (typeof chrome !== 'undefined' && chrome.runtime) {
       chrome.runtime.sendMessage({ type: 'GET_ALL' }, (r) => {
-        if (r && typeof r === 'object') {
-          localCache = r;
-        }
+        if (r && typeof r === 'object') localCache = r;
         resolve();
       });
-    } else {
-      resolve();
-    }
+    } else { resolve(); }
   });
 }
 
@@ -70,23 +71,41 @@ function listenForChanges(callback) {
   }
 }
 
+/**
+ * 加权评分
+ * 返回: { rawScore, display, total }
+ *   rawScore: 原始加权分（可负数）
+ *   display:  显示分（-100 ~ 100）
+ *   total:    总票数
+ */
+const WEIGHTS = {
+  good: 100, official: 100, deep: 50,
+  offtopic: -50, outdated: -25, spam: -100
+};
+
 function score(entry) {
-  if (!entry) return { credibility: 0.5, total: 0 };
-  const total = (entry.good||0)+(entry.spam||0)+(entry.official||0)+(entry.offtopic||0)+(entry.deep||0)+(entry.outdated||0);
-  if (total === 0) return { credibility: 0.5, total: 0 };
-
-  // 垃圾标记：直接扣到 0
-  if ((entry.spam||0) > 0) return { credibility: 0, total };
-
-  return { credibility: ((entry.good||0)+(entry.official||0))/total, total };
+  if (!entry) return { rawScore: 0, display: 0, total: 0 };
+  let rawScore = 0;
+  let total = 0;
+  for (const [tag, weight] of Object.entries(WEIGHTS)) {
+    const count = entry[tag] || 0;
+    rawScore += count * weight;
+    total += count;
+  }
+  // display: 限制在 -100 ~ 100
+  const display = Math.max(-100, Math.min(100, rawScore));
+  return { rawScore, display, total };
 }
 
-function scoreColor(c) {
-  if (c >= 0.8) return '#2e7d32';
-  if (c >= 0.6) return '#558b2f';
-  if (c >= 0.4) return '#f9a825';
-  if (c >= 0.2) return '#e65100';
-  return '#c62828';
+/**
+ * 显示颜色（根据分数）
+ */
+function scoreColor(s) {
+  if (s >= 80) return '#2e7d32';   // 绿（高质量）
+  if (s >= 40) return '#558b2f';   // 浅绿
+  if (s >= 10) return '#f9a825';   // 黄（一般）
+  if (s >= -20) return '#e65100';  // 橙（偏负）
+  return '#c62828';                // 红（垃圾）
 }
 
 function getDomain(url) {

@@ -88,33 +88,31 @@ function detectEngine() {
 // ── 竖排浮动栏 HTML（7 行） ──
 function makeBarHTML(entry) {
   const s = score(entry);
-  const color = scoreColor(s.credibility);
-  const pct = s.total > 0 ? Math.round(s.credibility * 100) : '—';
-  const vote = entry?.userVote || null;
+  const color = scoreColor(s.display);
 
   const buttons = TAGS.map(x =>
-    `<button class="il-btn${x.key===vote?' il-active':''}" data-tag="${x.key}"><span class="il-emoji">${x.emoji}</span><span class="il-label">${t(x)}</span></button>`
+    `<button class="il-btn${x.key===entry?.userVote?' il-active':''}" data-tag="${x.key}"><span class="il-emoji">${x.emoji}</span><span class="il-label">${t(x)}</span></button>`
   ).join('');
 
-  return `<div class="il-score-row"><span class="il-score" style="border-color:${color};color:${color}">${pct}</span></div>${buttons}`;
+  const scoreText = s.total > 0 ? (s.display > 0 ? '+' : '') + s.display : '—';
+  return `<div class="il-score-row"><span class="il-score" style="border-color:${color};color:${color}">${scoreText}</span></div>${buttons}`;
 }
 
 // ── 搜索结果横排徽章 HTML ──
 function makeBadgeHTML(entry) {
   const s = score(entry);
-  const color = scoreColor(s.credibility);
-  const pct = s.total > 0 ? Math.round(s.credibility * 100) : '—';
-  const vote = entry?.userVote || null;
+  const color = scoreColor(s.display);
 
   const tags = (entry ? TAGS.filter(x => (entry[x.key]||0) > 0).slice(0, 3).map(x =>
     `<span class="il-tag-sm il-${x.key}-sm" title="${t(x)} (${entry[x.key]})">${x.emoji}${t(x)}<b>${entry[x.key]}</b></span>`
   ).join('') : '');
 
   const btns = TAGS.map(x =>
-    `<button class="il-btn-sm${x.key===vote?' il-active':''}" data-tag="${x.key}" title="${t(x)}">${x.emoji}</button>`
+    `<button class="il-btn-sm${x.key===entry?.userVote?' il-active':''}" data-tag="${x.key}" title="${t(x)}">${x.emoji}</button>`
   ).join('');
 
-  return `<span class="il-score-sm" style="border-color:${color};color:${color}">${pct}</span>${tags}<span class="il-div-sm">|</span><span class="il-acts-sm">${btns}</span>`;
+  const scoreText = s.total > 0 ? (s.display > 0 ? '+' : '') + s.display : '—';
+  return `<span class="il-score-sm" style="border-color:${color};color:${color}">${scoreText}</span>${tags}<span class="il-div-sm">|</span><span class="il-acts-sm">${btns}</span>`;
 }
 
 // ── 场景 1: 页面浮动徽章 ──
