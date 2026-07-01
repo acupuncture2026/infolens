@@ -54,6 +54,9 @@ export default {
       if (path === '/api/consensus' && request.method === 'GET') {
         return handleConsensus(url, env);
       }
+      if (path === '/api/dump' && request.method === 'GET') {
+        return handleDump(env);
+      }
 
       // 默认 404
       return jsonResponse({ error: 'Not Found' }, 404);
@@ -65,6 +68,35 @@ export default {
 };
 
 // ── 端点处理 ──
+
+/**
+ * GET /api/dump
+ * 导出所有社区标注数据（供新安装的用户拉取）
+ */
+async function handleDump(env: Env): Promise<Response> {
+  const { results } = await env.DB.prepare(
+    `SELECT url, domain, tag_type, COUNT(*) as count
+     FROM user_tags
+     GROUP BY url, tag_type
+     ORDER BY count DESC
+     LIMIT 10000`
+  ).all<any>();
+
+  const data: Record<string, any> = {};
+  if (results) {
+    for (const row of results) {
+      if (!data[row.url]) {
+        data[row.url] = {
+          domain: row.domain,
+          good: 0, spam: 0, official: 0, offtopic: 0, deep: 0, outdated: 0
+        };
+      }
+      data[row.url][row.tag_type] = row.count;
+    }
+  }
+
+  return jsonResponse({ urls: data, count: Object.keys(data).length });
+}
 
 /**
  * POST /api/auth/register

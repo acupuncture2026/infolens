@@ -5,8 +5,9 @@
 const CLOUD_API = 'https://infolens-api.leokin.workers.dev';
 let store = {};
 let userId = null;
+let cloudSynced = false;
 
-// ── 启动 ──
+// ── 启动：加载本地数据 + 拉取云端 ──
 (async function() {
   // 加载用户 ID
   const uidResult = await chrome.storage.local.get(['userId', 'infolens_persist']);
@@ -17,8 +18,38 @@ let userId = null;
   if (uidResult.infolens_persist) {
     try { store = JSON.parse(uidResult.infolens_persist); } catch(e) {}
   }
-  console.log('[InfoLens] SW 启动, 加载', Object.keys(store).length, '条数据');
+
+  // 拉取云端社区数据（合并到本地）
+  await pullCloudData();
+
+  console.log('[InfoLens] SW 启动完成, 共', Object.keys(store).length, '条数据');
 })();
+
+async function pullCloudData() {
+  try {
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(), 10000);
+    const resp = await fetch(`${CLOUD_API}/api/dump`, { signal: controller.signal });
+    if (resp.ok) {
+      const data = await resp.json();
+      let merged = 0;
+      for (const [url, entry] of Object.entries(data.urls || {})) {
+        if (!store[url]) {
+          store[url] = { ...entry, domain: entry.domain, userVote: null };
+          merged++;
+        }
+      }
+      if (merged > 0) {
+        console.log('[InfoLens] 云端拉取', merged, '条新数据');
+        chrome.storage.local.set({ infolens_persist: JSON.stringify(store) });
+        chrome.runtime.sendMessage({ type: 'DATA_CHANGED', data: store }).catch(() => {});
+      }
+      cloudSynced = true;
+    }
+  } catch(e) {
+    console.warn('[InfoLens] 云端拉取失败:', e.message);
+  }
+}
 
 // ── 消息处理 ──
 chrome.runtime.onMessage.addListener((msg, sender, sendResp) => {
@@ -41,15 +72,34 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResp) => {
         d.userVote = tagType;
       }
 
-      // 持久化
+      // 即时持久化
       chrome.storage.local.set({ infolens_persist: JSON.stringify(store) });
 
-      // 同步到云端（异步，不阻塞）
+      // 同步到云端
       syncToCloud(url, domain, tagType);
 
       // 通知所有标签页
       chrome.runtime.sendMessage({ type: 'DATA_CHANGED', data: store }).catch(() => {});
       sendResp(d);
+      break;
+    }
+
+    case 'EXPORT':
+      sendResp({ data: store, exportedAt: new Date().toISOString() });
+      break;
+
+    case 'IMPORT': {
+      const imported = msg.data;
+      if (imported && typeof imported === 'object') {
+        for (const [url, entry] of Object.entries(imported)) {
+          if (!store[url]) {
+            store[url] = { ...entry, userVote: null };
+          }
+        }
+        chrome.storage.local.set({ infolens_persist: JSON.stringify(store) });
+        chrome.runtime.sendMessage({ type: 'DATA_CHANGED', data: store }).catch(() => {});
+      }
+      sendResp({ ok: true });
       break;
     }
 
@@ -65,6 +115,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResp) => {
         totalUrls: Object.keys(store).length,
         votedUrls: Object.values(store).filter(v => v.userVote).length,
         domains: new Set(Object.values(store).map(v => v.domain).filter(Boolean)).size,
+        cloudSynced,
       });
       break;
 
@@ -72,6 +123,23 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResp) => {
       sendResp(null);
   }
 });
+
+// ── 云端同步（投票推送） ──
+async function syncToCloud(url, domain, tagType) {
+  try {
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(), 5000);
+    const resp = await fetch(`${CLOUD_API}/api/tag`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId, url, domain, tag_type: tagType }),
+      signal: controller.signal,
+    });
+    if (resp.ok) {
+      console.log('[InfoLens] 云端同步:', domain, tagType);
+    }
+  } catch(e) {}
+}
 
 // ── 版本检查（GitHub） ──
 const GITHUB_REPO = 'acupuncture2026/infolens';
@@ -101,32 +169,13 @@ function checkForUpdate() {
   .catch(() => {});
 }
 
-// 启动时检查，每 6 小时检查一次
 setTimeout(checkForUpdate, 10000);
 setInterval(checkForUpdate, 6 * 60 * 60 * 1000);
 
-// ── 通知点击 ──
+// ── 通知 ──
 chrome.notifications.onClicked.addListener(() => {
   chrome.tabs.create({ url: `https://github.com/${GITHUB_REPO}` });
 });
-
 chrome.notifications.onButtonClicked.addListener(() => {
   chrome.tabs.create({ url: `https://github.com/${GITHUB_REPO}` });
 });
-async function syncToCloud(url, domain, tagType) {
-  try {
-    const controller = new AbortController();
-    setTimeout(() => controller.abort(), 5000);
-    const resp = await fetch(`${CLOUD_API}/api/tag`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId, url, domain, tag_type: tagType }),
-      signal: controller.signal,
-    });
-    if (resp.ok) {
-      console.log('[InfoLens] 云端同步成功:', domain, tagType);
-    }
-  } catch(e) {
-    // 静默失败，不影响本地数据
-  }
-}

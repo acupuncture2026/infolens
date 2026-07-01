@@ -92,20 +92,20 @@ function score(entry) {
     rawScore += count * weight;
     total += count;
   }
-  // display: 限制在 -100 ~ 100
-  const display = Math.max(-100, Math.min(100, rawScore));
-  return { rawScore, display, total };
+  return { rawScore, display: rawScore, total };
 }
 
-/**
- * 显示颜色（根据分数）
- */
 function scoreColor(s) {
-  if (s >= 80) return '#2e7d32';   // 绿（高质量）
-  if (s >= 40) return '#558b2f';   // 浅绿
-  if (s >= 10) return '#f9a825';   // 黄（一般）
-  if (s >= -20) return '#e65100';  // 橙（偏负）
-  return '#c62828';                // 红（垃圾）
+  if (s >= 400) return '#1b5e20';   // 深绿（大量认可）
+  if (s >= 200) return '#2e7d32';   // 绿（多人认可）
+  if (s >= 100) return '#43a047';   // 浅绿
+  if (s >= 50)  return '#7cb342';   // 黄绿
+  if (s >= 10)  return '#f9a825';   // 黄（中立）
+  if (s >= -10) return '#fdd835';   // 浅黄
+  if (s >= -50) return '#e65100';   // 橙（偏负）
+  if (s >= -100) return '#d84315';  // 深橙（差评）
+  if (s >= -200) return '#c62828';  // 红（垃圾）
+  return '#b71c1c';                  // 深红（严重垃圾）
 }
 
 function getDomain(url) {

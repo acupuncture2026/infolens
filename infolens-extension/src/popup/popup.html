@@ -4,53 +4,155 @@
 <meta charset="UTF-8">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{width:280px;font:13px/1.5 -apple-system,"PingFang SC",sans-serif;background:#f5f5f0;color:#1a1a1a}
+body{width:320px;font:13px/1.5 -apple-system,"PingFang SC",sans-serif;background:#f5f5f0;color:#1a1a1a}
 h1{text-align:center;padding:12px;font-size:1rem}
 h1 span{color:#1565c0}
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 12px;margin-bottom:12px}
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding:0 12px;margin-bottom:12px}
 .stat{background:#fff;border:1px solid #e0ddd5;border-radius:6px;padding:8px;text-align:center}
-.stat .n{font-size:1.2rem;font-weight:700;color:#1565c0}
-.stat .l{font-size:0.65rem;color:#666}
+.stat .n{font-size:1.1rem;font-weight:700;color:#1565c0}
+.stat .l{font-size:0.6rem;color:#666}
+.section{padding:0 12px;margin-bottom:10px}
+.section h2{font-size:0.75rem;color:#666;margin-bottom:6px;border-bottom:1px solid #e0ddd5;padding-bottom:3px}
+.top-list{background:#fff;border:1px solid #e0ddd5;border-radius:6px;max-height:100px;overflow-y:auto}
+.top-item{display:flex;align-items:center;gap:6px;padding:5px 10px;border-bottom:1px solid #f0efe8;font-size:0.7rem}
+.top-item:last-child{border-bottom:none}
+.top-score{min-width:32px;height:18px;display:flex;align-items:center;justify-content:center;border-radius:9px;font-size:0.65rem;font-weight:700;color:#fff}
+.top-domain{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .settings{background:#fff;border:1px solid #e0ddd5;border-radius:6px;padding:10px;margin:0 12px 12px}
 .row{display:flex;justify-content:space-between;padding:4px 0;font-size:0.75rem}
 .row .k{color:#666}
 .row .v{font-weight:600;font-size:0.7rem}
-button{display:block;width:100%;margin-top:8px;padding:6px;border:1px solid #d32f2f;border-radius:4px;background:transparent;color:#d32f2f;font-size:0.75rem;cursor:pointer}
-button:hover{background:#d32f2f;color:#fff}
-footer{text-align:center;font-size:0.65rem;color:#666;padding:8px;border-top:1px solid #e0ddd5}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.btn{padding:6px;border:1px solid #1565c0;border-radius:4px;background:transparent;color:#1565c0;font-size:0.7rem;cursor:pointer;text-align:center}
+.btn:hover{background:#1565c0;color:#fff}
+.btn-danger{border-color:#d32f2f;color:#d32f2f}
+.btn-danger:hover{background:#d32f2f;color:#fff}
+footer{text-align:center;font-size:0.6rem;color:#666;padding:8px;border-top:1px solid #e0ddd5}
+footer a{color:#1565c0;text-decoration:none}
 </style>
 </head>
 <body>
 <h1>Info<span>Lens</span></h1>
+
 <div class="stats">
   <div class="stat"><div class="n" id="tags">0</div><div class="l">已标注</div></div>
   <div class="stat"><div class="n" id="domains">0</div><div class="l">域名</div></div>
+  <div class="stat"><div class="n" id="synced">—</div><div class="l">云端</div></div>
 </div>
+
+<div class="section">
+  <h2>🏆 最高评分</h2>
+  <div class="top-list" id="top-good"></div>
+</div>
+
+<div class="section">
+  <h2>⚠️ 最低评分</h2>
+  <div class="top-list" id="top-bad"></div>
+</div>
+
 <div class="settings">
   <div class="row"><span class="k">用户 ID</span><span class="v" id="uid">—</span></div>
   <div class="row"><span class="k">版本</span><span class="v">v0.5.0</span></div>
-  <button id="clear">清除数据</button>
+  <div class="actions">
+    <button class="btn" id="export">📥 导出</button>
+    <button class="btn" id="import">📤 导入</button>
+    <button class="btn btn-danger" id="clear" style="grid-column:span 2">清除所有数据</button>
+  </div>
 </div>
+
 <footer><a href="https://www.tronfo.com">tronfo.com</a> · MIT</footer>
+<input type="file" id="import-file" accept=".json" style="display:none">
 <script>
 (function(){
+  function getScore(entry) {
+    const W = {good:100,official:100,deep:50,offtopic:-50,outdated:-25,spam:-100};
+    let s = 0;
+    for (const [k,w] of Object.entries(W)) s += (entry[k]||0) * w;
+    return s;
+  }
+
+  function scoreColor(s) {
+    if (s >= 400) return '#1b5e20';
+    if (s >= 200) return '#2e7d32';
+    if (s >= 100) return '#43a047';
+    if (s >= 50)  return '#7cb342';
+    if (s >= 10)  return '#f9a825';
+    if (s >= -10) return '#fdd835';
+    if (s >= -50) return '#e65100';
+    if (s >= -100) return '#d84315';
+    if (s >= -200) return '#c62828';
+    return '#b71c1c';
+  }
+
+  function renderTopList(containerId, entries) {
+    const el = document.getElementById(containerId);
+    if (!entries.length) { el.innerHTML = '<div class="top-item" style="color:#999;justify-content:center">暂无数据</div>'; return; }
+    el.innerHTML = entries.map(e => {
+      const c = scoreColor(e.score);
+      const label = e.score > 0 ? '+' + e.score : e.score;
+      return `<div class="top-item"><span class="top-score" style="background:${c}">${label}</span><span class="top-domain">${e.domain}</span></div>`;
+    }).join('');
+  }
+
   if (chrome.runtime) {
     chrome.runtime.sendMessage({type:'STATS'}, r => {
       if (r) {
         document.getElementById('tags').textContent = r.votedUrls || 0;
         document.getElementById('domains').textContent = r.domains || 0;
-        chrome.runtime.sendMessage({type:'GET_ALL'}, data => {
-          if (data && chrome.storage) {
-            chrome.storage.local.get(['userId'], uid => {
-              document.getElementById('uid').textContent = (uid.userId||'anon').slice(0,8)+'…'+(uid.userId||'anon').slice(-4);
-            });
-          }
+        document.getElementById('synced').textContent = r.cloudSynced ? '✅' : '⏳';
+      }
+    });
+
+    chrome.runtime.sendMessage({type:'GET_ALL'}, data => {
+      if (data) {
+        const scored = Object.entries(data).map(([url, entry]) => ({
+          url, domain: entry.domain || new URL(url).hostname.replace(/^www\./,''),
+          score: getScore(entry)
+        })).filter(e => e.score !== 0).sort((a,b) => b.score - a.score);
+
+        renderTopList('top-good', scored.slice(0, 10));
+        renderTopList('top-bad', scored.slice(-10).reverse());
+
+        chrome.storage.local.get(['userId'], uid => {
+          document.getElementById('uid').textContent = (uid.userId||'anon').slice(0,8)+'…'+(uid.userId||'anon').slice(-4);
         });
       }
     });
   }
+
+  document.getElementById('export').addEventListener('click', () => {
+    chrome.runtime.sendMessage({type:'EXPORT'}, r => {
+      if (r && r.data) {
+        const blob = new Blob([JSON.stringify(r, null, 2)], {type:'application/json'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `infolens-backup-${new Date().toISOString().slice(0,10)}.json`;
+        a.click();
+      }
+    });
+  });
+
+  document.getElementById('import').addEventListener('click', () => {
+    document.getElementById('import-file').click();
+  });
+
+  document.getElementById('import-file').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        chrome.runtime.sendMessage({type:'IMPORT', data: data.data || data}, r => {
+          if (r?.ok) location.reload();
+        });
+      } catch(err) { alert('文件格式错误'); }
+    };
+    reader.readAsText(file);
+  });
+
   document.getElementById('clear').addEventListener('click', () => {
-    if (!confirm('清除所有标注数据？')) return;
+    if (!confirm('清除所有标注数据？此操作不可恢复。')) return;
     chrome.runtime.sendMessage({type:'CLEAR'}, () => location.reload());
   });
 })();
