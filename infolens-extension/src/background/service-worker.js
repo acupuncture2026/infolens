@@ -27,25 +27,38 @@ let cloudSynced = false;
 
 async function pullCloudData() {
   try {
-    const controller = new AbortController();
-    setTimeout(() => controller.abort(), 10000);
-    const resp = await fetch(`${CLOUD_API}/api/dump`, { signal: controller.signal });
-    if (resp.ok) {
+    let offset = 0;
+    let total = 0;
+    let merged = 0;
+
+    while (true) {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), 10000);
+      const resp = await fetch(`${CLOUD_API}/api/dump?offset=${offset}&limit=2000`, { signal: controller.signal });
+      if (!resp.ok) break;
+
       const data = await resp.json();
-      let merged = 0;
+      total = data.total || 0;
+
       for (const [url, entry] of Object.entries(data.urls || {})) {
         if (!store[url]) {
           store[url] = { ...entry, domain: entry.domain, userVote: null };
           merged++;
         }
       }
-      if (merged > 0) {
-        console.log('[InfoLens] 云端拉取', merged, '条新数据');
-        chrome.storage.local.set({ infolens_persist: JSON.stringify(store) });
-        chrome.runtime.sendMessage({ type: 'DATA_CHANGED', data: store }).catch(() => {});
-      }
-      cloudSynced = true;
+
+      if (!data.hasMore) break;
+      offset += data.limit;
+      // 最多拉取 5 页（1 万条），避免阻塞启动
+      if (offset >= 10000) break;
     }
+
+    if (merged > 0) {
+      console.log('[InfoLens] 云端拉取', merged, '条 (总', total, '条)');
+      chrome.storage.local.set({ infolens_persist: JSON.stringify(store) });
+      chrome.runtime.sendMessage({ type: 'DATA_CHANGED', data: store }).catch(() => {});
+    }
+    cloudSynced = true;
   } catch(e) {
     console.warn('[InfoLens] 云端拉取失败:', e.message);
   }

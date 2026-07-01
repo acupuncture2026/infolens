@@ -71,16 +71,27 @@ export default {
 
 /**
  * GET /api/dump
- * 导出所有社区标注数据（供新安装的用户拉取）
+ * 导出社区标注数据（分页，供新安装的用户拉取）
+ * 参数: ?offset=0&limit=1000
  */
 async function handleDump(env: Env): Promise<Response> {
+  const url = new URL(env.BINDING_VARS?.__request_url || '');
+  // 从 request 获取 query params
+  const offset = parseInt(url.searchParams.get('offset') || '0');
+  const limit = Math.min(parseInt(url.searchParams.get('limit') || '1000'), 5000);
+
   const { results } = await env.DB.prepare(
     `SELECT url, domain, tag_type, COUNT(*) as count
      FROM user_tags
      GROUP BY url, tag_type
      ORDER BY count DESC
-     LIMIT 10000`
-  ).all<any>();
+     LIMIT ? OFFSET ?`
+  ).bind(limit, offset).all<any>();
+
+  // 获取总数
+  const { results: countResult } = await env.DB.prepare(
+    `SELECT COUNT(DISTINCT url) as total FROM user_tags`
+  ).first<any>();
 
   const data: Record<string, any> = {};
   if (results) {
@@ -95,7 +106,14 @@ async function handleDump(env: Env): Promise<Response> {
     }
   }
 
-  return jsonResponse({ urls: data, count: Object.keys(data).length });
+  return jsonResponse({
+    urls: data,
+    count: Object.keys(data).length,
+    total: countResult?.total || 0,
+    offset,
+    limit,
+    hasMore: offset + limit < (countResult?.total || 0),
+  });
 }
 
 /**

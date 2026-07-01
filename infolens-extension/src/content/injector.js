@@ -133,7 +133,6 @@ function bindBarEvents(bar, url, domain) {
     btn.addEventListener('click', (e) => {
       e.preventDefault(); e.stopPropagation();
       vote(url, domain, btn.dataset.tag);
-      console.log('[InfoLens] 投票 URL:', url, '| 域名:', domain, '| 标签:', btn.dataset.tag);
       bar.innerHTML = makeBarHTML(getEntry(url));
       bindBarEvents(bar, url, domain);
     });
@@ -160,12 +159,6 @@ function injectSearchResults(engine) {
 
       injected.add(el);
       const entry = getEntry(url);
-      const allData = getAllData();
-      console.log('[InfoLens] 搜索URL:', url);
-      console.log('[InfoLens] 域名:', domain);
-      console.log('[InfoLens] 有数据:', !!entry);
-      console.log('[InfoLens] 存储中所有 URL:', Object.keys(allData));
-      console.log('[InfoLens] 投票状态:', entry?.userVote);
 
       const badge = document.createElement('div');
       badge.className = 'il-badge';

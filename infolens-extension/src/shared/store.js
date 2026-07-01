@@ -1,5 +1,5 @@
 /**
- * InfoLens — 数据存储（URL 级别）
+ * InfoLens — 数据存储（URL 级别，支持 10 万+ 条目）
  * 评分算法：加权投票
  *   👍 值得看   +100
  *   📋 官网     +100
@@ -10,6 +10,8 @@
  */
 
 let localCache = {};
+// 规范化 URL 索引：规范化 URL → 原始 URL（加速查找）
+let normIndex = {};
 
 function getAllData() { return localCache; }
 
@@ -22,17 +24,30 @@ function normalizeUrl(url) {
   }
 }
 
-function getEntry(url) {
-  if (localCache[url]) return localCache[url];
-  const norm = normalizeUrl(url);
-  for (const [k, v] of Object.entries(localCache)) {
-    if (normalizeUrl(k) === norm) return v;
+function buildNormIndex() {
+  normIndex = {};
+  for (const url of Object.keys(localCache)) {
+    normIndex[normalizeUrl(url)] = url;
   }
+}
+
+function getEntry(url) {
+  // 精确匹配
+  if (localCache[url]) return localCache[url];
+  // 索引查找 O(1)
+  const norm = normalizeUrl(url);
+  const original = normIndex[norm];
+  if (original && localCache[original]) return localCache[original];
   return null;
 }
 
+function addEntry(url, entry) {
+  localCache[url] = entry;
+  normIndex[normalizeUrl(url)] = url;
+}
+
 function vote(url, domain, tagType) {
-  if (!localCache[url]) localCache[url] = { good:0, spam:0, official:0, offtopic:0, deep:0, outdated:0, domain, userVote:null };
+  if (!localCache[url]) addEntry(url, { good:0, spam:0, official:0, offtopic:0, deep:0, outdated:0, domain, userVote:null });
   const d = localCache[url];
   const old = d.userVote;
   if (old === tagType) {
@@ -53,7 +68,10 @@ function loadData() {
   return new Promise((resolve) => {
     if (typeof chrome !== 'undefined' && chrome.runtime) {
       chrome.runtime.sendMessage({ type: 'GET_ALL' }, (r) => {
-        if (r && typeof r === 'object') localCache = r;
+        if (r && typeof r === 'object') {
+          localCache = r;
+          buildNormIndex();
+        }
         resolve();
       });
     } else { resolve(); }
@@ -65,6 +83,7 @@ function listenForChanges(callback) {
     chrome.runtime.onMessage.addListener((msg) => {
       if (msg.type === 'DATA_CHANGED' && msg.data) {
         localCache = msg.data;
+        buildNormIndex();
         if (callback) callback();
       }
     });
@@ -74,9 +93,6 @@ function listenForChanges(callback) {
 /**
  * 加权评分
  * 返回: { rawScore, display, total }
- *   rawScore: 原始加权分（可负数）
- *   display:  显示分（-100 ~ 100）
- *   total:    总票数
  */
 const WEIGHTS = {
   good: 100, official: 100, deep: 50,
@@ -96,16 +112,16 @@ function score(entry) {
 }
 
 function scoreColor(s) {
-  if (s >= 400) return '#1b5e20';   // 深绿（大量认可）
-  if (s >= 200) return '#2e7d32';   // 绿（多人认可）
-  if (s >= 100) return '#43a047';   // 浅绿
-  if (s >= 50)  return '#7cb342';   // 黄绿
-  if (s >= 10)  return '#f9a825';   // 黄（中立）
-  if (s >= -10) return '#fdd835';   // 浅黄
-  if (s >= -50) return '#e65100';   // 橙（偏负）
-  if (s >= -100) return '#d84315';  // 深橙（差评）
-  if (s >= -200) return '#c62828';  // 红（垃圾）
-  return '#b71c1c';                  // 深红（严重垃圾）
+  if (s >= 400) return '#1b5e20';
+  if (s >= 200) return '#2e7d32';
+  if (s >= 100) return '#43a047';
+  if (s >= 50)  return '#7cb342';
+  if (s >= 10)  return '#f9a825';
+  if (s >= -10) return '#fdd835';
+  if (s >= -50) return '#e65100';
+  if (s >= -100) return '#d84315';
+  if (s >= -200) return '#c62828';
+  return '#b71c1c';
 }
 
 function getDomain(url) {
