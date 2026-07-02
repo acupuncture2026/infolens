@@ -102,16 +102,13 @@ function listenForChanges(callback) {
 
 /**
  * 加权评分
- * 评分范围: -50000 ~ +50000，10 级色阶（深红 → 深绿）
+ * 评分范围: 理论 ±50000（500 票 unanimous），10 级色阶（深红→深绿）
+ *   good +100, official +100, deep +50, offtopic -50, outdated -25, spam -100
  * 返回: { rawScore, adjusted, display, total, confidence }
- *   rawScore   — 原始加权和
- *   adjusted   — 置信度衰减后的分数
- *   confidence — 置信度因子 0~1
- *   total      — 总投票数
  */
 const WEIGHTS = {
-  good: 10000, official: 10000, deep: 5000,
-  offtopic: -5000, outdated: -2500, spam: -10000
+  good: 100, official: 100, deep: 50,
+  offtopic: -50, outdated: -25, spam: -100
 };
 
 function score(entry) {
@@ -134,7 +131,7 @@ function scoreColor(s) {
   if (s >= 30000) return '#2e7d32';
   if (s >= 20000) return '#43a047';
   if (s >= 10000) return '#7cb342';  // 绿
-  if (s >= 1)     return '#9acd32';  // 浅绿（微正）
+  if (s >= 1)     return '#9acd32';  // 浅绿
   if (s >= -1)    return '#fdd835';  // 黄色（中性）
   if (s >= -2500) return '#e65100';  // 橙
   if (s >= -5000) return '#d84315';
