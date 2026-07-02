@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "InfoLens — 信息透镜",
-  "version": "0.5.5",
+  "version": "0.5.6",
   "description": "所有网页的质量标注层",
   "default_locale": "zh_CN",
   "icons": {

@@ -122,7 +122,7 @@ PYTHONPATH=src python -m infolens serve
 
 ---
 
-## 浏览器扩展（v0.5.5）
+## 浏览器扩展（v0.5.6）
 
 ### 安装
 
@@ -397,4 +397,4 @@ InfoLens 尊重你的隐私，只标注结果，不追踪个人。
 
 ---
 
-*InfoLens v0.5.5 · 2026 · 让信息回归透明*
+*InfoLens v0.5.6 · 2026 · 让信息回归透明*
