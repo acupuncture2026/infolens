@@ -22,6 +22,7 @@ h1 span{color:#1565c0}
 .row{display:flex;justify-content:space-between;padding:4px 0;font-size:0.75rem}
 .row .k{color:#666}
 .row .v{font-weight:600;font-size:0.7rem}
+.privacy{font-size:0.6rem;color:#888;text-align:center;padding:2px 0 8px}
 .actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
 .btn{padding:6px;border:1px solid #1565c0;border-radius:4px;background:transparent;color:#1565c0;font-size:0.7rem;cursor:pointer;text-align:center}
 .btn:hover{background:#1565c0;color:#fff}
@@ -52,7 +53,8 @@ footer a{color:#1565c0;text-decoration:none}
 
 <div class="settings">
   <div class="row"><span class="k">用户 ID</span><span class="v" id="uid">—</span></div>
-  <div class="row"><span class="k">版本</span><span class="v">v0.5.0</span></div>
+  <div class="row"><span class="k">版本</span><span class="v" id="version">v0.5.0</span></div>
+  <div class="privacy">匿名使用，不收集个人信息</div>
   <div class="actions">
     <button class="btn" id="export">📥 导出</button>
     <button class="btn" id="import">📤 导入</button>
@@ -156,6 +158,12 @@ footer a{color:#1565c0;text-decoration:none}
     chrome.runtime.sendMessage({type:'CLEAR'}, () => location.reload());
   });
 })();
+</script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const ver = document.getElementById('version');
+    if (ver && chrome.runtime) ver.textContent = 'v' + chrome.runtime.getManifest().version;
+  });
 </script>
 </body>
 </html>

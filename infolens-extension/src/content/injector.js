@@ -101,15 +101,18 @@ function makeBarHTML(entry) {
 // ── 搜索结果横排徽章 HTML ──
 function makeBadgeHTML(entry) {
   const s = score(entry);
-  const color = scoreColor(s.display);
+  const color = entry ? scoreColor(s.display) : '#ccc';
   const scoreText = s.total > 0 ? (s.display > 0 ? '+' : '') + s.display : '—';
 
-  const tags = (entry ? TAGS.filter(x => (entry[x.key]||0) > 0).slice(0, 3).map(x =>
-    `<span class="il-tag-sm il-${x.key}-sm" title="${t(x)} (${entry[x.key]})">${x.emoji}${t(x)}<b>${entry[x.key]}</b></span>`
-  ).join('') : '');
+  // 有数据时显示标签（最多3个）
+  const tags = (entry && s.total > 0
+    ? TAGS.filter(x => (entry[x.key]||0) > 0).slice(0, 3).map(x =>
+      `<span class="il-tag-sm il-${x.key}-sm" title="${t(x)} (${entry[x.key]})">${x.emoji}${t(x)}<b>${entry[x.key]}</b></span>`
+    ).join('') : '');
 
+  // 始终渲染 6 个操作按钮
   const btns = TAGS.map(x =>
-    `<button class="il-btn-sm${x.key===entry?.userVote?' il-active':''}" data-tag="${x.key}" title="${t(x)}">${x.emoji}</button>`
+    `<button class="il-btn-sm${entry && x.key===entry.userVote?' il-active':''}" data-tag="${x.key}" title="${t(x)}">${x.emoji}</button>`
   ).join('');
 
   return `<span class="il-score-sm" style="border-color:${color};color:${color}">${scoreText}</span>${tags}<span class="il-div-sm">|</span><span class="il-acts-sm">${btns}</span>`;
@@ -201,6 +204,7 @@ function bindBadgeEvents(badge, url, domain) {
     let badgeDone = false;
     let searchDone = false;
     let dataLoaded = false;
+    let runTimer = null;
 
     function run() {
       if (window.location.href !== lastUrl) {
@@ -222,10 +226,24 @@ function bindBadgeEvents(badge, url, domain) {
         const engine = detectEngine();
         if (engine) {
           searchDone = true;
+          // 修复 3.3: 检测到搜索页后停止轮询
+          if (runTimer) { clearInterval(runTimer); runTimer = null; }
           setTimeout(() => injectSearchResults(engine), 1000);
         }
       }
     }
+
+    // 修复 3.3: 使用 popstate + hashchange 替代轮询检测 SPA 导航
+    function onNavigate() {
+      lastUrl = window.location.href;
+      badgeDone = false;
+      searchDone = false;
+      const oldBar = document.getElementById('infolens-bar');
+      if (oldBar) oldBar.remove();
+      if (dataLoaded) run();
+    }
+    window.addEventListener('popstate', onNavigate);
+    window.addEventListener('hashchange', onNavigate);
 
     // 监听数据变化（其他标签页的投票实时同步）
     listenForChanges(() => {
@@ -251,7 +269,7 @@ function bindBadgeEvents(badge, url, domain) {
       } else {
         window.addEventListener('DOMContentLoaded', () => setTimeout(run, 500));
       }
-      setInterval(run, 500);
+      runTimer = setInterval(run, 500);
     });
   } catch(e) {
     console.error('[InfoLens] 启动错误:', e);

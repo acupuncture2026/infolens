@@ -1,6 +1,6 @@
 /**
  * InfoLens — 数据存储（URL 级别，支持 10 万+ 条目）
- * 评分算法：加权投票
+ * 评分算法：加权投票 + 置信度衰减
  *   👍 值得看   +100
  *   📋 官网     +100
  *   🔍 深度     +50
@@ -47,6 +47,8 @@ function addEntry(url, entry) {
 }
 
 function vote(url, domain, tagType) {
+  // 修复 1.1: 发送前剥离查询参数和锚点
+  const cleanUrl = url.split('?')[0].split('#')[0];
   if (!localCache[url]) addEntry(url, { good:0, spam:0, official:0, offtopic:0, deep:0, outdated:0, domain, userVote:null });
   const d = localCache[url];
   const old = d.userVote;
@@ -59,7 +61,7 @@ function vote(url, domain, tagType) {
     d.userVote = tagType;
   }
   if (typeof chrome !== 'undefined' && chrome.runtime) {
-    chrome.runtime.sendMessage({ type: 'VOTE', data: { url, domain, tagType } }).catch(() => {});
+    chrome.runtime.sendMessage({ type: 'VOTE', data: { url: cleanUrl, domain, tagType } }).catch(() => {});
   }
   return d;
 }
@@ -81,9 +83,17 @@ function loadData() {
 function listenForChanges(callback) {
   if (typeof chrome !== 'undefined' && chrome.runtime) {
     chrome.runtime.onMessage.addListener((msg) => {
+      // 修复 3.2: 支持全量广播和单条 URL 增量更新
       if (msg.type === 'DATA_CHANGED' && msg.data) {
-        localCache = msg.data;
-        buildNormIndex();
+        if (msg.url) {
+          // 单条 URL 更新
+          localCache[msg.url] = msg.data;
+          normIndex[normalizeUrl(msg.url)] = msg.url;
+        } else {
+          // 全量 store 广播（pullCloudData 结果）
+          localCache = msg.data;
+          buildNormIndex();
+        }
         if (callback) callback();
       }
     });
@@ -92,15 +102,20 @@ function listenForChanges(callback) {
 
 /**
  * 加权评分
- * 返回: { rawScore, display, total }
+ * 评分范围: -50000 ~ +50000，10 级色阶（深红 → 深绿）
+ * 返回: { rawScore, adjusted, display, total, confidence }
+ *   rawScore   — 原始加权和
+ *   adjusted   — 置信度衰减后的分数
+ *   confidence — 置信度因子 0~1
+ *   total      — 总投票数
  */
 const WEIGHTS = {
-  good: 100, official: 100, deep: 50,
-  offtopic: -50, outdated: -25, spam: -100
+  good: 10000, official: 10000, deep: 5000,
+  offtopic: -5000, outdated: -2500, spam: -10000
 };
 
 function score(entry) {
-  if (!entry) return { rawScore: 0, display: 0, total: 0 };
+  if (!entry) return { rawScore: 0, adjusted: 0, display: 0, total: 0, confidence: 0 };
   let rawScore = 0;
   let total = 0;
   for (const [tag, weight] of Object.entries(WEIGHTS)) {
@@ -108,20 +123,23 @@ function score(entry) {
     rawScore += count * weight;
     total += count;
   }
-  return { rawScore, display: rawScore, total };
+  const confidence = total / (total + 5);
+  const adjusted = rawScore * confidence;
+  return { rawScore, adjusted, display: rawScore, total, confidence };
 }
 
 function scoreColor(s) {
-  if (s >= 400) return '#1b5e20';
-  if (s >= 200) return '#2e7d32';
-  if (s >= 100) return '#43a047';
-  if (s >= 50)  return '#7cb342';
-  if (s >= 10)  return '#f9a825';
-  if (s >= -10) return '#fdd835';
-  if (s >= -50) return '#e65100';
-  if (s >= -100) return '#d84315';
-  if (s >= -200) return '#c62828';
-  return '#b71c1c';
+  // 10 级色阶: -50000 ~ +50000
+  if (s >= 40000) return '#1b5e20';  // 深绿
+  if (s >= 30000) return '#2e7d32';
+  if (s >= 20000) return '#43a047';
+  if (s >= 10000) return '#7cb342';  // 绿
+  if (s >= 1)     return '#9acd32';  // 浅绿（微正）
+  if (s >= -1)    return '#fdd835';  // 黄色（中性）
+  if (s >= -2500) return '#e65100';  // 橙
+  if (s >= -5000) return '#d84315';
+  if (s >= -10000) return '#c62828'; // 红
+  return '#b71c1c';                  // 深红
 }
 
 function getDomain(url) {

@@ -15,5 +15,15 @@ const TAGS = [
   { key:'outdated', emoji:'📅', zh:'过时',    en:'Outdated', ja:'古い',     ko:'오래됨',   fr:'Obsolète',   de:'Veraltet',  es:'Obsoleto', pt:'Desatual.', ru:'Устарело',  ar:'قديم' },
 ];
 
+/** 独立翻译键（非标签） */
+const I18N = {
+  PRIVACY_NOTE: { zh:'匿名使用，不收集个人信息', en:'Anonymous, no personal data collected', ja:'匿名利用、個人情報は収集しません', ko:'익명 사용, 개인정보 수집 없음', fr:'Anonyme, aucune donnée personnelle collectée', de:'Anonym, keine personenbezogenen Daten gesammelt', es:'Anónimo, no se recopilan datos personales', pt:'Anônimo, nenhum dado pessoal coletado', ru:'Анонимно, личные данные не собираются', ar:'مجهول، لا يتم جمع بيانات شخصية' },
+  SYNC_PENDING: { zh:'同步中...', en:'Syncing...', ja:'同期中...', ko:'동기 중...', fr:'Synchronisation...', de:'Synchronisierung...', es:'Sincronizando...', pt:'Sincronizando...', ru:'Синхронизация...', ar:'جارٍ المزامنة...' },
+  LOADING: { zh:'加载中...', en:'Loading...', ja:'読み込み中...', ko:'로딩 중...', fr:'Chargement...', de:'Laden...', es:'Cargando...', pt:'Carregando...', ru:'Загрузка...', ar:'جارٍ التحميل...' },
+  COLLAPSE: { zh:'收起', en:'Collapse', ja:'折りたたむ', ko:'접기', fr:'Réduire', de:'Einklappen', es:'Colapsar', pt:'Recolher', ru:'Свернуть', ar:'طي' },
+  EXPAND: { zh:'展开', en:'Expand', ja:'展開する', ko:'펼치기', fr:'Développer', de:'Erweitern', es:'Expandir', pt:'Expandir', ru:'Развернуть', ar:'توسيع' },
+};
+
 function t(tag) { return tag[LANG] || tag.en; }
 function tKey(key) { const found = TAGS.find(x => x.key === key); return found ? t(found) : key; }
+function tI18n(key) { const entry = I18N[key]; return entry ? (entry[LANG] || entry.en) : key; }

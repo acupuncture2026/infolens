@@ -8,6 +8,70 @@
 
 ---
 
+## 快速开始
+
+### 方式一：安装浏览器扩展（推荐）
+
+**Chrome / Edge：**
+1. 打开 `chrome://extensions/`（Edge 用 `edge://extensions/`）
+2. 开启「开发者模式」
+3. 点击「加载已解压的扩展程序」
+4. 选择 `infolens-extension/` 目录
+
+**Firefox：**
+1. 打开 `about:debugging#/runtime/this-firefox`
+2. 点击「临时载入附加组件」
+3. 选择 `infolens-extension/manifest-firefox.json`
+
+安装后，浏览任何网页时右侧会出现浮动标注栏，搜索结果页每个标题旁会显示评分徽章。
+
+### 方式二：部署云端服务（自托管）
+
+如果你不想使用默认的共享 API，可以自行部署 Cloudflare Worker：
+
+```bash
+# 1. Fork 本仓库并克隆
+git clone https://github.com/<你的用户名>/infolens.git
+cd infolens
+
+# 2. 安装 Wrangler（Cloudflare CLI）
+npm install -g wrangler
+
+# 3. 登录 Cloudflare
+wrangler login
+
+# 4. 部署 Worker + 创建 D1 数据库
+cd infolens-cloudflare
+wrangler d1 create infolens-prod
+# 将输出的 database_id 填入 wrangler.toml 的 [[d1_databases]] binding 中
+wrangler d1 execute infolens-prod --file db/schema.sql
+npx wrangler deploy --minify
+
+# 5. 记录 Worker URL，如 https://infolens-xxx.yourname.workers.dev
+```
+
+部署完成后，在扩展中配置自定义 API 地址：
+1. 点击扩展图标打开面板
+2. 进入「设置」
+3. 填写「自定义 API 地址」为 Worker URL（无需尾斜杠）
+4. 保存即可
+
+### 方式三：本地 Python Web
+
+```bash
+cd infolens
+pip install -e .
+
+# 初始化数据库
+PYTHONPATH=src python -m infolens init
+
+# 启动 Web 界面
+PYTHONPATH=src python -m infolens serve
+# → http://localhost:8787
+```
+
+---
+
 ## 为什么做这件事
 
 作为一个小企业的运营人员，我们常常遇到这样的困惑：
@@ -58,14 +122,20 @@
 
 ---
 
-## 浏览器扩展（v0.5）
+## 浏览器扩展（v0.5.5）
 
 ### 安装
 
-1. 打开 `chrome://extensions/`
+**Chrome / Edge：**
+1. 打开 `chrome://extensions/`（Edge 用 `edge://extensions/`）
 2. 开启「开发者模式」
 3. 点击「加载已解压的扩展程序」
 4. 选择 `infolens-extension/` 目录
+
+**Firefox：**
+1. 打开 `about:debugging#/runtime/this-firefox`
+2. 点击「临时载入附加组件」
+3. 选择 `infolens-extension/manifest-firefox.json`
 
 ### 功能
 
@@ -75,9 +145,9 @@
 ┌────────┐
 │  100   │ ← 域名评分
 │ 👍 值得看 │
-│ 👎 垃圾  │
 │ 📋 官网  │
 │ ⚠️ 偏题  │
+│ 👎 垃圾  │
 │ 🔍 深度  │
 │ 📅 过时  │
 └────────┘
@@ -132,32 +202,61 @@ npx wrangler deploy --minify
 
 ---
 
-## 快速开始（Python Web）
-
-```bash
-cd infolens
-pip install -e .
-
-# 初始化数据库
-PYTHONPATH=src python -m infolens init
-
-# 启动 Web 界面
-PYTHONPATH=src python -m infolens serve
-# → http://localhost:8787
-```
-
-### CLI 模式
+## CLI 模式
 
 ```bash
 PYTHONPATH=src python -m infolens search "宠孚生物官网"
 PYTHONPATH=src python -m infolens stats
 ```
 
-### Scrapy 爬虫（可选）
+## Scrapy 爬虫（可选）
 
 ```bash
 scrapy crawl search -a keyword="宠孚生物官网" -a engine=bing
 ```
+
+---
+
+## 自托管指南
+
+完整地将 InfoLens 部署到你自己的基础设施：
+
+### 1. Fork 仓库
+
+在 GitHub 上 fork 本仓库，获得你自己的副本。
+
+### 2. 部署 Cloudflare Worker
+
+```bash
+# 安装 Wrangler
+npm install -g wrangler
+
+# 登录 Cloudflare
+wrangler login
+
+# 创建 D1 数据库
+cd infolens-cloudflare
+wrangler d1 create infolens-prod
+# 复制输出的 database_id 到 wrangler.toml
+
+# 执行数据库建表
+wrangler d1 execute infolens-prod --file db/schema.sql
+
+# 部署 Worker
+npx wrangler deploy --minify
+```
+
+部署成功后会输出一个 `*.workers.dev` 地址，这就是你的自定义 API 端点。
+
+### 3. 配置扩展指向自定义 API
+
+1. 打开扩展设置面板
+2. 填写「自定义 API 地址」为你的 Worker URL
+3. 保存后，所有数据交互将走你自己的 Worker
+
+### 4. （可选）绑定自定义域名
+
+在 Cloudflare Dashboard 中，为 Worker 绑定你自己的域名，实现完全品牌化的 InfoLens 实例。
 
 ---
 
@@ -218,8 +317,14 @@ infolens/
   - [x] 跨域数据同步
   - [x] 10 种语言自动切换
   - [x] 翻页自动重新注入
+  - [x] 异步同步队列（失败自动重试）
+  - [x] Firefox 兼容
+  - [x] 可配置 API 地址（自托管支持）
+  - [x] CORS 安全限制
+  - [x] 评分置信度归一化
+  - [x] 可折叠侧边栏
+  - [x] 隐私声明
   - [ ] Google 完整支持
-  - [ ] Firefox 兼容
 
 ### 中期（v0.6 → v0.8）
 
@@ -247,12 +352,49 @@ URL → { good, spam, official, offtopic, deep, outdated, domain, userVote }
 
 ---
 
+## 隐私声明
+
+InfoLens 尊重你的隐私，只标注结果，不追踪个人。
+
+### 我们收集的数据
+
+| 数据项 | 说明 | 用途 |
+|--------|------|------|
+| URL | 你标注的页面地址 | 关联标注到具体网页 |
+| 域名 | URL 的根域名 | 计算域名可信评分 |
+| 标注类型 | 你选择的标签（👍/👎/📋/⚠️/🔍/📅） | 社区标注聚合 |
+| 匿名 UUID | 由扩展本地生成，不关联任何身份信息 | 区分不同用户的标注 |
+
+### 我们 **不** 收集的数据
+
+- **搜索关键词** — 我们不知道你搜了什么
+- **浏览历史** — 我们不知道你访问了哪些页面
+- **页面内容** — 我们不读取或上传页面文本
+- **个人身份信息** — 不需要注册，不收集邮箱/手机号/姓名
+- **Cookie 或指纹** — 不设置追踪 Cookie，不做设备指纹
+
+### 数据如何使用
+
+- 你的标注与社区标注聚合，共同影响域名的可信评分
+- 评分仅用于在搜索结果旁显示「值得看 / 垃圾」等参考信息
+- 所有标注数据通过 Cloudflare D1 全球边缘分发
+
+### 你的权利
+
+- **随时清除数据**：在扩展设置中点击「清除所有数据」，本地标注将被完全删除
+- **完全离线使用**：扩展可以不连接任何云端服务独立工作
+- **自托管**：可以部署自己的 Worker，数据完全由你掌控
+
+---
+
 ## 贡献
 
 欢迎加入！无论你是开发者、编辑、研究者，还是每一个不愿意被算法饲养的普通人。
+
+详细的开发指南请见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 📧 cvlk@163.com
 
 ---
 
-*InfoLens v0.5 · 2026 · 让信息回归透明*
+*InfoLens v0.5.5 · 2026 · 让信息回归透明*

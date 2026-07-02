@@ -20,6 +20,94 @@
   box-shadow: -2px 2px 12px rgba(0,0,0,0.15);
   padding: 6px 0;
   min-width: 110px;
+  max-width: 90vw;
+  transition: min-width 0.2s, max-width 0.2s, padding 0.2s, opacity 0.2s;
+  overflow: hidden;
+}
+
+/* ── 折叠状态 ── */
+#infolens-bar.il-bar-collapsed {
+  min-width: 6px;
+  padding: 0;
+  border-radius: 3px 0 0 3px;
+  background: #1565c0;
+}
+#infolens-bar.il-bar-collapsed > :not(.il-toggle-btn) {
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
+  border: none;
+}
+
+/* ── 折叠/展开切换按钮 ── */
+.il-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 20px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #1565c0;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.1s;
+  flex-shrink: 0;
+}
+.il-toggle-btn:hover { background: #f0f0f0; }
+#infolens-bar.il-bar-collapsed .il-toggle-btn {
+  height: 100%;
+  width: 18px;
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  font-size: 10px;
+}
+#infolens-bar.il-bar-collapsed .il-toggle-btn:hover {
+  background: rgba(255,255,255,0.3);
+}
+.il-toggle-btn .il-arrow {
+  display: inline-block;
+  transition: transform 0.2s;
+}
+#infolens-bar.il-bar-collapsed .il-toggle-btn .il-arrow {
+  transform: rotate(180deg);
+}
+
+/* ── 响应式：小屏幕自动折叠 ── */
+@media (max-width: 767px) {
+  #infolens-bar:not(.il-bar-collapsed) {
+    animation: il-auto-collapse 0.3s forwards;
+  }
+  @keyframes il-auto-collapse {
+    to {
+      min-width: 6px;
+      padding: 0;
+      border-radius: 3px 0 0 3px;
+      background: #1565c0;
+    }
+  }
+  #infolens-bar:not(.il-bar-collapsed) > :not(.il-toggle-btn) {
+    opacity: 0;
+    pointer-events: none;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+    padding: 0;
+    margin: 0;
+    border: none;
+  }
+  #infolens-bar:not(.il-bar-collapsed) .il-toggle-btn {
+    height: 100%;
+    width: 18px;
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    font-size: 10px;
+  }
 }
 
 /* ── 评分行 ── */
